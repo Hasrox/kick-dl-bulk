@@ -48,7 +48,7 @@ npm install -g kick-dl
 pnpm add -g kick-dl
 ```
 -------------------
-To use open directory in CMD
+To use open directory in terminal
 ```sh
 kick-dl
 ```
