@@ -21,6 +21,7 @@
     "youtube-dl",
     "twitch-dl"
   ],
+
   "repository": {
     "type": "git",
     "url": "https://github.com/hasrox/kick-dl-bulk.git"
@@ -28,9 +29,20 @@
   "bugs": {
     "url": "https://github.com/hasrox/kick-dl-bulk/issues"
   },
+
+  "files": [
+    "bin/",
+    "src/"
+  ],
   "engines": {
     "node": ">=14.21.3"
   },
+
+  "scripts": {
+    "start": "node bin/cli.js",
+    "postinstall": "node scripts/postinstall.js"
+  },
+
   "dependencies": {
     "@inquirer/prompts": "^7.3.2",
     "chalk": "^5.4.1",
