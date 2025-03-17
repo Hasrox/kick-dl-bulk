@@ -36,7 +36,7 @@ const calculateSpeed = (bytesDownloaded, elapsedTime) => {
   return formatFileSize(bytesPerSecond) + '/s';
 };
 
-// Generate simplified filename with original title, duration and views
+// Generate simplified filename with original title, duration and views 
 export const generateClipFileName = (username, originalTitle, durationSec, views) => {
   // Sanitize title minimally for safe filenames
   const sanitizedTitle = originalTitle
