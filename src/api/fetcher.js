@@ -30,91 +30,92 @@ export const fetchChannel = async (channel) => {
 		logMessage(error.message, 'red');
 	}
 };
-
-// src/api/fetcher.js - Updated fetchAllClips function
-export const fetchAllClips = async (channel) => {
-	try {
-	  let allClips = [];
-	  let cursor = null; // Start with null cursor
-	  let hasMoreClips = true;
-	  let page = 1;
-	  
-	  logMessage(`Starting to fetch all clips for channel: ${channel}`, 'blue');
-	  
-	  while (hasMoreClips) {
-		// Build URL based on whether we have a cursor
-		let apiUrl = `https://kick.com/api/v2/channels/${channel}/clips?sort=view&time=all`;
-		if (cursor) {
-		  apiUrl += `&cursor=${cursor}`;
-		}
-		
-		logMessage(`Fetching clips page ${page}, URL: ${apiUrl}`, 'blue');
-		
+    // Updated fetchAllClips in to prompt fetching option by -sort :time,views and date: allTime, last month, last weel, last day. 
+	export const fetchAllClips = async (channel, timeFilter = 'all', sortOrder = 'view') => {
 		try {
-		  const data = await KickScraper.scrapeData(apiUrl);
+		  let allClips = [];
+		  let seenClipIds = new Set(); // Track seen clip IDs for more efficient duplicate detection
+		  let cursor = null;
+		  let hasMoreClips = true;
+		  let page = 1;
 		  
-		  if (data && data.clips && data.clips.length > 0) {
-			// Filter out duplicates
-			const newClips = data.clips.filter(clip => 
-			  !allClips.some(existingClip => existingClip.id === clip.id)
-			);
-			
-			allClips = [...allClips, ...newClips];
-			logMessage(`Found ${data.clips.length} clips on page ${page}, ${newClips.length} are new. Total: ${allClips.length}`, 'green');
-			
-			// Check if there's a new nextCursor in the response
-			if (data.nextCursor && data.nextCursor !== cursor) {
-			  cursor = data.nextCursor; // Use nextCursor, not cursor
-			  page++;
-			} else {
-			  hasMoreClips = false;
-			  logMessage('No more pages available (no nextCursor or unchanged)', 'yellow');
+		  logMessage(`Starting to fetch all clips for channel: ${channel} (${timeFilter} time, sorted by ${sortOrder})`, 'blue');
+		  
+		  while (hasMoreClips) {
+			// Build URL with time filter and sort parameters for any time period
+			let apiUrl = `https://kick.com/api/v2/channels/${channel}/clips?sort=${sortOrder}&time=${timeFilter}`;
+			if (cursor) {
+			  apiUrl += `&cursor=${cursor}`;
 			}
-		  } else {
-			hasMoreClips = false;
-			logMessage('No clips found or empty response', 'yellow');
+			
+			logMessage(`Fetching clips page ${page}, URL: ${apiUrl}`, 'blue');
+			
+			try {
+			  const data = await KickScraper.scrapeData(apiUrl);
+			  
+			  if (data && data.clips && data.clips.length > 0) {
+				// More efficient duplicate filtering using Set
+				const newClips = [];
+				for (const clip of data.clips) {
+				  if (!seenClipIds.has(clip.id)) {
+					seenClipIds.add(clip.id);
+					newClips.push(clip);
+				  }
+				}
+				
+				allClips = [...allClips, ...newClips];
+				logMessage(`Found ${data.clips.length} clips on page ${page}, ${newClips.length} are new (filtered ${data.clips.length - newClips.length} duplicates). Total: ${allClips.length}`, 'green');
+				
+				// Continue paginating as long as there's a valid nextCursor, regardless of time filter
+				if (data.nextCursor && data.nextCursor !== cursor) {
+				  cursor = data.nextCursor;
+				  page++;
+				} else {
+				  hasMoreClips = false;
+				  logMessage(`No more clips available for time period: ${timeFilter}`, 'yellow');
+				}
+			  } else {
+				hasMoreClips = false;
+				logMessage(`No clips found for time period: ${timeFilter}`, 'yellow');
+			  }
+			} catch (error) {
+			  logMessage(`Error fetching page ${page}: ${error.message}. Retrying...`, 'red');
+			  await new Promise(resolve => setTimeout(resolve, 2000));
+			  continue;
+			}
+			
+			await new Promise(resolve => setTimeout(resolve, 500));
 		  }
+		  
+		  logMessage(`Successfully fetched a total of ${allClips.length} unique clips for time period: ${timeFilter}`, 'green');
+		  return allClips;
 		} catch (error) {
-		  logMessage(`Error fetching page ${page}: ${error.message}. Retrying...`, 'red');
-		  await new Promise(resolve => setTimeout(resolve, 2000));
-		  continue;
+		  logMessage(`Error in fetchAllClips: ${error.message}`, 'red');
+		  return [];
 		}
-		
-		// Wait between requests to avoid rate limiting
-		await new Promise(resolve => setTimeout(resolve, 500)); // Reduced to 500ms as per your working code
-	  }
+	  };
 	  
-	  logMessage(`Successfully fetched a total of ${allClips.length} clips`, 'green');
-	  return allClips;
-	} catch (error) {
-	  logMessage(`Error in fetchAllClips: ${error.message}`, 'red');
-	  return [];
-	}
-  };
-  
-  // Update fetchContentList to properly handle the clip data structure
-  export const fetchContentList = async (channel, contentType, fetchAll = false) => {
-	try {
-	  if (contentType === 'Clip') {
-		if (fetchAll) {
-		  const clips = await fetchAllClips(channel);
-		  return { clips }; // Return in the expected format
+	  export const fetchContentList = async (channel, contentType, fetchAll = false, timeFilter = 'all', sortOrder = 'view') => {
+		try {
+		  if (contentType === 'Clip') {
+			if (fetchAll) {
+			  const clips = await fetchAllClips(channel, timeFilter, sortOrder);
+			  return { clips }; // Return in the expected format
+			}
+			
+			const data = await KickScraper.scrapeData(
+			  `https://kick.com/api/v2/channels/${channel}/clips?cursor=0&sort=${sortOrder}&time=${timeFilter}`
+			);
+			return data;
+		  }
+	  
+		  // No change to VOD fetching
+		  const data = await KickScraper.scrapeData(
+			`https://kick.com/api/v2/channels/${channel}/videos?cursor=0&sort=date&time=all`
+		  );
+		  return data;
+		} catch (error) {
+		  logMessage(error.message, 'red');
+		  return { clips: [] }; // Return empty clips array on error
 		}
-		
-		const data = await KickScraper.scrapeData(
-		  `https://kick.com/api/v2/channels/${channel}/clips?cursor=0&sort=view&time=all`
-		);
-		return data;
-	  }
-  
-	  // No change to VOD fetching
-	  const data = await KickScraper.scrapeData(
-		`https://kick.com/api/v2/channels/${channel}/videos?cursor=0&sort=date&time=all`
-	  );
-	  return data;
-	} catch (error) {
-	  logMessage(error.message, 'red');
-	  return { clips: [] }; // Return empty clips array on error
-	}
-  };
-
+	  };
