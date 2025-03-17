@@ -33,7 +33,7 @@ export const promptContentType = (channelName) => {
 
 export const promptClipDownloadType = () => {
 	return confirm({
-	  message: 'Fetch All Clips?',
+	  message: 'Fetch Clips?',
 	  default: true,
 	  transformer: (input) => input ? 'Yes' : 'No'
 	}).then(confirmed => {
@@ -107,5 +107,53 @@ export const promptClipSelection = (clips, channelName) => {
 	  pageSize: 15,
 	  instructions: `\n${colors.yellow('Use arrow keys ↑↓ to navigate, SPACE to select, Enter to confirm')}\n${clipChoices.length} clips available`,
 	  onState
+	});
+  };
+//new clip fetching options
+  export const promptClipFilterOptions = () => {
+	return select({
+	  message: 'Select time filter and sort order:',
+	  choices: [
+		{ 
+		  name: 'All time - Sort by views', 
+		  value: { time: 'all', sort: 'view' },
+		  description: '- Show all clips, sorted by most viewed first'
+		},
+		{ 
+		  name: 'All time - Sort by recent', 
+		  value: { time: 'all', sort: 'date' },
+		  description: '-!!NOT RECOMMENDED!!. Show all clips, sorted by newest first. Takes long time, might get blocked by kick!!.'
+		},
+		{ 
+		  name: 'Last month - Sort by views', 
+		  value: { time: 'month', sort: 'view' },
+		  description: '- Show last month\'s clips, sorted by most viewed first'
+		},
+		{ 
+		  name: 'Last month - Sort by recent', 
+		  value: { time: 'month', sort: 'date' },
+		  description: '- Show last month\'s clips, sorted by newest first'
+		},
+		{ 
+		  name: 'Last week - Sort by views', 
+		  value: { time: 'week', sort: 'view' },
+		  description: '- Show last week\'s clips, sorted by most viewed first'
+		},
+		{ 
+		  name: 'Last week - Sort by recent', 
+		  value: { time: 'week', sort: 'date' },
+		  description: '- Show last week\'s clips, sorted by newest first'
+		},
+		{ 
+		  name: 'Last day - Sort by views', 
+		  value: { time: 'day', sort: 'view' },
+		  description: '- Show today\'s clips, sorted by most viewed first'
+		},
+		{ 
+		  name: 'Last day - Sort by recent', 
+		  value: { time: 'day', sort: 'date' },
+		  description: '- Show today\'s clips, sorted by newest first'
+		},
+	  ],
 	});
   };
