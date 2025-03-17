@@ -1,6 +1,6 @@
 {
-  "name": "kick-dl",
-  "version": "2.0.0",
+  "name": "kick-dl-bulk",
+  "version": "2.1.0",
   "description": "CLI tool for easily downloading VODs and Clips from kick.com",
   "type": "module",
   "private": false,
@@ -23,10 +23,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/juliogarciape/kick-dl.git"
+    "url": "https://github.com/hasrox/kick-dl-bulk.git"
   },
   "bugs": {
-    "url": "https://github.com/juliogarciape/kick-dl/issues"
+    "url": "https://github.com/hasrox/kick-dl-bulk/issues"
   },
   "engines": {
     "node": ">=14.21.3"
