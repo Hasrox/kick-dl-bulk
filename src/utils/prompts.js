@@ -120,9 +120,9 @@ export const promptClipSelection = (clips, channelName) => {
 		  description: '- Show all clips, sorted by most viewed first'
 		},
 		{ 
-		  name: 'All time - Sort by recent', 
+		  name: 'All time - Sort by recent -!!NOT RECOMMENDED', 
 		  value: { time: 'all', sort: 'date' },
-		  description: '-!!NOT RECOMMENDED!!. Show all clips, sorted by newest first. Takes long time, might get blocked by kick!!.'
+		  description: '!!NOT RECOMMENDED!!. Although it may Show all clips and potentially hidden ones,\nbut takes long time, additionally excessive request might get blocked by kick!!.'
 		},
 		{ 
 		  name: 'Last month - Sort by views', 
