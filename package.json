@@ -7,8 +7,9 @@
   "author": "Julio Cesar Garcia <dev.juliogarciape@gmail.com>",
   "license": "GPL-3.0-only",
   "homepage": "https://github.com/juliogarciape/kick-dl#README",
+  "main": "bin/cli.js",
   "bin": {
-    "kick-dl": "./bin/cli.js"
+    "kick-dl": "bin/cli.js"
   },
   "keywords": [
     "kick.com",
@@ -30,14 +31,21 @@
     "url": "https://github.com/hasrox/kick-dl-bulk/issues"
   },
 
+  "preferGlobal": true,
   "files": [
     "bin/",
     "src/"
   ],
   "engines": {
-    "node": ">=14.21.3"
+    "node": ">=14.16.0"
   },
-
+  "scripts": {
+    "start": "node bin/cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  
   "dependencies": {
     "@inquirer/prompts": "^7.3.2",
     "chalk": "^5.4.1",
