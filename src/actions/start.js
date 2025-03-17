@@ -4,7 +4,8 @@ import {
 	promptContentType,
 	promptDownload,
 	promptClipDownloadType,
-	promptClipSelection
+	promptClipSelection,
+	promptClipFilterOptions
   } from '../utils/prompts.js';
   import API from '../api/index.js';
   import { formatContent } from '../helpers/index.js';
@@ -55,18 +56,22 @@ import {
 		const downloadType = await promptClipDownloadType();
 		
 		if (downloadType === 'bulk') {
+		  // Get filter options before fetching
+		  const filterOptions = await promptClipFilterOptions();
+		  const { time: timeFilter, sort: sortOrder } = filterOptions;
+		  
 		  // Create a spinner for loading indicator
 		  const spinner = ora({
-			text: 'Fetching clips... this might take a moment',
+			text: `Fetching clips (${timeFilter} time, sorted by ${sortOrder === 'view' ? 'views' : 'recent'})... this might take a moment`,
 			color: 'blue'
 		  }).start();
 		  
 		  try {
-			const response = await API.fetchContentList(channel, contentType, true);
+			const response = await API.fetchContentList(channel, contentType, true, timeFilter, sortOrder);
 			const allClips = response.clips || [];
 			
 			if (!allClips || allClips.length === 0) {
-			  spinner.fail('No clips found for this channel.');
+			  spinner.fail('No clips found for this channel with the selected filters.');
 			  return;
 			}
 			
@@ -136,13 +141,6 @@ import {
 			  status: 'Starting downloads...'
 			});
 			
-			/* Create batch progress bar
-			const batchProgress = multibar.create(concurrencyLevel, 0, {
-			  isBatch: true,
-			  eta: 0,
-			  status: 'Preparing...'
-			}); */
-			
 			// Create progress bars for active downloads
 			const progressBars = [];
 			for (let i = 0; i < concurrencyLevel; i++) {
@@ -179,109 +177,109 @@ import {
 			
 			// Process batches sequentially
 			for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-				const batch = batches[batchIndex];
-				const batchSize = batch.length;
-				
-				// Show batch status in overall progress
-				overallProgress.update(overallCompleted, { 
-				  status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount}`
-				});
-				
-				// Batch tracking info
-				const batchInfo = {
-				  startTime: Date.now(),
-				  total: batchSize,
-				  completed: 0,
-				  eta: 0
-				};
-				
-				// Create download promises for current batch
-				const batchPromises = batch.map((clip, index) => {
-				  return new Promise(async (resolve) => {
-					const progressBar = getProgressBar();
+			  const batch = batches[batchIndex];
+			  const batchSize = batch.length;
+			  
+			  // Show batch status in overall progress
+			  overallProgress.update(overallCompleted, { 
+				status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount}`
+			  });
+			  
+			  // Batch tracking info
+			  const batchInfo = {
+				startTime: Date.now(),
+				total: batchSize,
+				completed: 0,
+				eta: 0
+			  };
+			  
+			  // Create download promises for current batch
+			  const batchPromises = batch.map((clip, index) => {
+				return new Promise(async (resolve) => {
+				  const progressBar = getProgressBar();
+				  
+				  if (!clip.value) {
+					overallProgress.increment({
+					  status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
+					});
+					overallCompleted++;
+					failCount++;
+					batchInfo.completed++;
+					if (progressBar) releaseProgressBar(progressBar);
+					resolve();
+					return;
+				  }
+				  
+				  try {
+					// Use original title and duration for consistent naming
+					const originalTitle = clip.originalTitle || clip.name.split(' - ')[0];
+					const durationSec = clip.durationSec || clip.name.split(' - ')[1].split(' ')[0];
+					const views = clip.originalContent?.views || 0;
 					
-					if (!clip.value) {
-					  overallProgress.increment({
-						status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
+					const clipName = generateClipFileName(
+					  username, 
+					  originalTitle, 
+					  durationSec,
+					  views
+					);
+					
+					if (progressBar) {
+					  progressBar.update(0, { 
+						filename: clipName.length > 25 ? clipName.substring(0, 22) + '...' : clipName,
+						speed: '0 B/s'
 					  });
-					  overallCompleted++;
-					  failCount++;
-					  batchInfo.completed++;
-					  if (progressBar) releaseProgressBar(progressBar);
-					  resolve();
-					  return;
 					}
 					
-					try {
-					  // Use original title and duration for consistent naming
-					  const originalTitle = clip.originalTitle || clip.name.split(' - ')[0];
-					  const durationSec = clip.durationSec || clip.name.split(' - ')[1].split(' ')[0];
-					  const views = clip.originalContent?.views || 0;
-					  
-					  const clipName = generateClipFileName(
-						username, 
-						originalTitle, 
-						durationSec,
-						views
-					  );
-					  
-					  if (progressBar) {
-						progressBar.update(0, { 
-						  filename: clipName.length > 25 ? clipName.substring(0, 22) + '...' : clipName,
-						  speed: '0 B/s'
-						});
-					  }
-					  
-					  const downloadResult = await Downloader(
-						true, 
-						clip.value, 
-						{
-						  name: clipName,
-						  outputDir
-						}, 
-						progressBar,
-						batchInfo
-					  );
-					  
-					  if (downloadResult.status) {
-						if (downloadResult.skipped) {
-						  skipCount++;
-						} else {
-						  successCount++;
-						}
-						
-						overallProgress.increment({ 
-						  status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
-						});
+					const downloadResult = await Downloader(
+					  true, 
+					  clip.value, 
+					  {
+						name: clipName,
+						outputDir
+					  }, 
+					  progressBar,
+					  batchInfo
+					);
+					
+					if (downloadResult.status) {
+					  if (downloadResult.skipped) {
+						skipCount++;
 					  } else {
-						failCount++;
-						overallProgress.increment({ 
-						  status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
-						});
+						successCount++;
 					  }
-					  
-					  overallCompleted++;
-					} catch (error) {
-					  failCount++;
-					  overallCompleted++;
-					  batchInfo.completed++;
 					  
 					  overallProgress.increment({ 
-						status: `Processing batch ${batchIndex + 1}/${batches.length} | Error: ${error.message.substring(0, 30)}...`
+						status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
 					  });
-					} finally {
-					  if (progressBar) releaseProgressBar(progressBar);
-					  resolve();
+					} else {
+					  failCount++;
+					  overallProgress.increment({ 
+						status: `Processing batch ${batchIndex + 1}/${batches.length} | Downloaded: ${successCount} | Skipped: ${skipCount} | Failed: ${failCount}`
+					  });
 					}
-				  });
+					
+					overallCompleted++;
+				  } catch (error) {
+					failCount++;
+					overallCompleted++;
+					batchInfo.completed++;
+					
+					overallProgress.increment({ 
+					  status: `Processing batch ${batchIndex + 1}/${batches.length} | Error: ${error.message.substring(0, 30)}...`
+					});
+				  } finally {
+					if (progressBar) releaseProgressBar(progressBar);
+					resolve();
+				  }
 				});
-				
-				// Wait for all downloads in current batch to complete
-				await Promise.all(batchPromises);
-				
-				// Show batch completion message
-				logMessage(`Batch ${batchIndex + 1}/${batches.length} completed`, 'blue');
-			  }
+			  });
+			  
+			  // Wait for all downloads in current batch to complete
+			  await Promise.all(batchPromises);
+			  
+			  // Show batch completion message
+			  logMessage(`Batch ${batchIndex + 1}/${batches.length} completed`, 'blue');
+			}
 			
 			// Complete overall progress
 			overallProgress.update(clipsToDownload.length, { 
