@@ -6,8 +6,8 @@ import { initialAction } from '../src/actions/start.js';
 const program = new Command();
 
 program
-	.name('kick-dl')
-	.version('2.0.0')
+	.name('kick-dl-bulk')
+	.version('2.1.0')
 	.description(
 		'CLI tool for easily downloading VODs and Clips from kick.com'
 	);
