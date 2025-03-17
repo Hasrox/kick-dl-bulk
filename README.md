@@ -27,6 +27,7 @@ All thanks to original creator juliogarciape, who really worked on this reposito
 - **improved clips fetching mechanism** 🧲⚙️: To fetch all clips instead of the original ~20 clips max 🗂️
 - **Now you can Download All Clips** of the selected channel. 📹
 - **Concurrent Clips Download** ⏬
+- **clips filter** : By time period or views. -allTime, last month, last week, last day. Sorted by : views OR most recent. 🧮
 - **Minor UI changes** : Download Brogress Bar instead of raw FFmpeg output, for overall task compeletion and the current downloading patch of clips 🛤️
 🟢Kick.com🟢 bulk clips download
 ## Support Us :sparkling_heart:
