@@ -43,13 +43,13 @@ To install Kick-DL, run the following command in your terminal:
 **using npm**:
 
 ```sh
-npm install -g kick-dl
+npm install -g kick-dl-bulk
 ```
 
 **using pnpm**:
 
 ```sh
-pnpm add -g kick-dl
+pnpm add -g kick-dl-bulk
 ```
 -------------------
 To use open directory in terminal
